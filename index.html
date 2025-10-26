@@ -149,6 +149,19 @@ const slideshowBtn = document.getElementById('slideshowBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const dotsContainer = document.getElementById('dots');
 
+// Lazy-loading helper
+function lazyLoadImage(img) {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        img.src = img.dataset.src;
+        observer.disconnect();
+      }
+    });
+  });
+  observer.observe(img);
+}
+
 async function loadImages() {
   const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
   const res = await fetch(url);
@@ -160,16 +173,23 @@ async function loadImages() {
   dotsContainer.innerHTML = '';
 
   imageList.forEach((file, i) => {
+    // Thumbnail
     const imgThumb = document.createElement('img');
-    imgThumb.src = file.download_url;
+    imgThumb.dataset.src = file.download_url; // lazy-load
     imgThumb.alt = file.name;
+    imgThumb.loading = 'lazy';
     imgThumb.onclick = () => openLightbox(i);
     gallery.appendChild(imgThumb);
+    lazyLoadImage(imgThumb);
 
+    // Carousel
     const imgCarousel = document.createElement('img');
-    imgCarousel.src = file.download_url;
+    imgCarousel.dataset.src = file.download_url;
+    imgCarousel.loading = 'lazy';
     carousel.appendChild(imgCarousel);
+    lazyLoadImage(imgCarousel);
 
+    // Dot
     const dot = document.createElement('div');
     dot.classList.add('dot');
     dot.onclick = () => { currentIndex = i; resetTransform(); updateCarousel(); };
@@ -286,7 +306,7 @@ carousel.addEventListener('touchend', e => {
     if (Math.abs(diffX) > 50) { if (diffX < 0) nextImage(); else prevImage(); } 
     else updateCarousel();
   }
-  if (zoomed && Math.abs(velocityX) > 0 || Math.abs(velocityY) > 0) {
+  if (zoomed && (Math.abs(velocityX) > 0 || Math.abs(velocityY) > 0)) {
     inertiaPan();
   }
   isDragging = false;
