@@ -63,6 +63,11 @@
       max-height: 80%;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      opacity: 0;
+      transition: opacity 0.5s ease; /* fade effect */
+    }
+    #lightbox img.show {
+    opacity: 1;
     }
     .nav-arrow {
       position: fixed;
@@ -135,11 +140,17 @@
     }
 
     function showImage() {
-      if (imageList.length > 0) {
-        const src = imageList[currentIndex].download_url;
-        lightboxImg.src = src;
-      }
+       if (imageList.length > 0) {
+    // Remove current image class to trigger fade-out
+    lightboxImg.classList.remove('show');
+    
+    // Small timeout to allow opacity transition
+    setTimeout(() => {
+      lightboxImg.src = imageList[currentIndex].download_url;
+      lightboxImg.classList.add('show'); // fade-in
+    }, 50);
     }
+   }
 
     function nextImage() {
       currentIndex = (currentIndex + 1) % imageList.length;
