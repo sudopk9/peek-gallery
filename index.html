@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #111; /* dark background */
+      background: #111;
       color: #eee;
       margin: 0;
       padding: 20px;
@@ -52,31 +52,34 @@
       transform: scale(1.03);
     }
 
+    /* Lightbox container */
     #lightbox {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.9);
+      background: rgba(0,0,0,0.9);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 999;
-      flex-direction: column;
+      overflow: hidden;
     }
 
-    #lightbox img {
-      max-width: 90%;
-      max-height: 80%;
+    /* Carousel wrapper */
+    #carousel {
+      display: flex;
+      transition: transform 0.5s ease;
+      height: 80%;
+      align-items: center;
+    }
+
+    #carousel img {
+      max-width: 100%;
+      max-height: 100%;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3);
-      opacity: 0;
-      transition: opacity 0.5s ease; /* fade transition */
-    }
-
-    #lightbox img.show {
-      opacity: 1;
+      flex-shrink: 0;
     }
 
     .nav-arrow {
@@ -88,6 +91,7 @@
       cursor: pointer;
       user-select: none;
       padding: 10px;
+      z-index: 1000;
     }
 
     #prevArrow {
@@ -96,6 +100,10 @@
 
     #nextArrow {
       right: 20px;
+    }
+
+    #slideshowBtn {
+      margin-bottom: 15px;
     }
   </style>
 </head>
@@ -106,7 +114,7 @@
 
   <div id="lightbox">
     <span id="prevArrow" class="nav-arrow">&#10094;</span>
-    <img src="" alt="">
+    <div id="carousel"></div>
     <span id="nextArrow" class="nav-arrow">&#10095;</span>
   </div>
 
@@ -121,7 +129,9 @@
 
     const gallery = document.getElementById('gallery');
     const lightbox = document.getElementById('lightbox');
-    const lightboxImg = lightbox.querySelector('img');
+    const carousel = document.getElementById('carousel');
+    const prevArrow = document.getElementById('prevArrow');
+    const nextArrow = document.getElementById('nextArrow');
     const slideshowBtn = document.getElementById('slideshowBtn');
 
     async function loadImages() {
@@ -131,19 +141,31 @@
 
       imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
       gallery.innerHTML = '';
+      carousel.innerHTML = '';
 
       imageList.forEach((file, i) => {
-        const img = document.createElement('img');
-        img.src = file.download_url;
-        img.alt = file.name;
-        img.onclick = () => openLightbox(i);
-        gallery.appendChild(img);
+        // Gallery thumbnails
+        const imgThumb = document.createElement('img');
+        imgThumb.src = file.download_url;
+        imgThumb.alt = file.name;
+        imgThumb.onclick = () => openLightbox(i);
+        gallery.appendChild(imgThumb);
+
+        // Carousel images
+        const imgCarousel = document.createElement('img');
+        imgCarousel.src = file.download_url;
+        carousel.appendChild(imgCarousel);
       });
+    }
+
+    function updateCarousel() {
+      const offset = -currentIndex * window.innerWidth;
+      carousel.style.transform = `translateX(${offset}px)`;
     }
 
     function openLightbox(index) {
       currentIndex = index;
-      showImage();
+      updateCarousel();
       lightbox.style.display = 'flex';
     }
 
@@ -152,29 +174,16 @@
       stopSlideshow();
     }
 
-    function showImage() {
-      if (imageList.length > 0) {
-        // Remove class to trigger fade-out
-        lightboxImg.classList.remove('show');
-        // Small delay to allow fade-out
-        setTimeout(() => {
-          lightboxImg.src = imageList[currentIndex].download_url;
-          lightboxImg.classList.add('show'); // fade-in
-        }, 50);
-      }
-    }
-
     function nextImage() {
       currentIndex = (currentIndex + 1) % imageList.length;
-      showImage();
+      updateCarousel();
     }
 
     function prevImage() {
       currentIndex = (currentIndex - 1 + imageList.length) % imageList.length;
-      showImage();
+      updateCarousel();
     }
 
-    // Slideshow controls
     function startSlideshow() {
       slideshowBtn.textContent = '⏸ Pause Slideshow';
       slideshowInterval = setInterval(nextImage, 3000);
@@ -189,13 +198,13 @@
     slideshowBtn.onclick = () => {
       if (slideshowInterval) stopSlideshow();
       else {
-        openLightbox(0);
+        openLightbox(currentIndex);
         startSlideshow();
       }
     };
 
-    document.getElementById('nextArrow').onclick = nextImage;
-    document.getElementById('prevArrow').onclick = prevImage;
+    nextArrow.onclick = nextImage;
+    prevArrow.onclick = prevImage;
 
     lightbox.onclick = e => {
       if (e.target === lightbox) closeLightbox();
@@ -209,6 +218,9 @@
         else if (e.key === 'Escape') closeLightbox();
       }
     });
+
+    // Update carousel width on resize
+    window.addEventListener('resize', updateCarousel);
 
     loadImages();
   </script>
