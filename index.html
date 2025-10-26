@@ -110,6 +110,7 @@
       const res = await fetch(url);
       const files = await res.json();
 
+
       imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
       gallery.innerHTML = '';
       imageList.forEach((file, i) => {
