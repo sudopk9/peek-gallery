@@ -1,30 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Photo Gallery</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peek Through My Lens</title>
   <style>
-    body { font-family: sans-serif; background: #fafafa; margin: 0; padding: 20px; text-align: center; }
-    h1 { margin-bottom: 20px; }
-    .gallery { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-    .gallery img { width: 250px; height: auto; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    #lightbox {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center;
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
     }
-    #lightbox img { max-width: 90%; max-height: 90%; border-radius: 10px; }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+    .gallery img {
+      width: 250px;
+      height: auto;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      transition: transform 0.2s;
+    }
+    .gallery img:hover {
+      transform: scale(1.03);
+    }
+    #lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    #lightbox img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
   </style>
 </head>
 <body>
-  <h1>My Photo Gallery</h1>
+  <h1>Peek Through My Lens</h1>
   <div class="gallery" id="gallery"></div>
-  <div id="lightbox" onclick="this.style.display='none'"><img src="" alt=""></div>
+
+  <div id="lightbox" onclick="this.style.display='none'">
+    <img src="" alt="">
+  </div>
 
   <script>
-    const username = 'sudopk9';
-    const repo = 'peek-gallery';
-    const folderPath = 'photos'; // folder inside your repo
+    const username = 'sudopk9'; // your GitHub username
+    const repo = 'peek-gallery'; // your repo name
+    const folderPath = 'photos'; // your folder inside the repo
 
     async function loadImages() {
       const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
@@ -32,6 +71,8 @@
       const files = await res.json();
 
       const gallery = document.getElementById('gallery');
+      gallery.innerHTML = ''; // clear existing
+
       files.forEach(file => {
         if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
           const img = document.createElement('img');
@@ -45,8 +86,9 @@
 
     function showLightbox(src) {
       const lightbox = document.getElementById('lightbox');
+      const img = lightbox.querySelector('img');
+      img.src = src;
       lightbox.style.display = 'flex';
-      lightbox.querySelector('img').src = src;
     }
 
     loadImages();
