@@ -15,6 +15,18 @@
     h1 {
       margin-bottom: 20px;
     }
+    button {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 15px;
+    }
+    button:hover {
+      background: #555;
+    }
     .gallery {
       display: flex;
       flex-wrap: wrap;
@@ -43,53 +55,134 @@
       justify-content: center;
       align-items: center;
       z-index: 999;
+      flex-direction: column;
     }
     #lightbox img {
       max-width: 90%;
-      max-height: 90%;
+      max-height: 80%;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    .nav-arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 3rem;
+      cursor: pointer;
+      user-select: none;
+      padding: 10px;
+    }
+    #prevArrow {
+      left: 20px;
+    }
+    #nextArrow {
+      right: 20px;
     }
   </style>
 </head>
 <body>
   <h1>Peek Through My Lens</h1>
+  <button id="slideshowBtn">▶ Play Slideshow</button>
   <div class="gallery" id="gallery"></div>
 
-  <div id="lightbox" onclick="this.style.display='none'">
+  <div id="lightbox">
+    <span id="prevArrow" class="nav-arrow">&#10094;</span>
     <img src="" alt="">
+    <span id="nextArrow" class="nav-arrow">&#10095;</span>
   </div>
 
   <script>
-    const username = 'sudopk9'; // your GitHub username
-    const repo = 'peek-gallery'; // your repo name
-    const folderPath = 'photos'; // your folder inside the repo
+    const username = 'sudopk9';
+    const repo = 'peek-gallery';
+    const folderPath = 'photos';
+
+    let currentIndex = 0;
+    let imageList = [];
+    let slideshowInterval = null;
+    const gallery = document.getElementById('gallery');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = lightbox.querySelector('img');
+    const slideshowBtn = document.getElementById('slideshowBtn');
 
     async function loadImages() {
       const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
       const res = await fetch(url);
       const files = await res.json();
 
-      const gallery = document.getElementById('gallery');
-      gallery.innerHTML = ''; // clear existing
-
-      files.forEach(file => {
-        if (file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-          const img = document.createElement('img');
-          img.src = file.download_url;
-          img.alt = file.name;
-          img.onclick = () => showLightbox(file.download_url);
-          gallery.appendChild(img);
-        }
+      imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+      gallery.innerHTML = '';
+      imageList.forEach((file, i) => {
+        const img = document.createElement('img');
+        img.src = file.download_url;
+        img.alt = file.name;
+        img.onclick = () => openLightbox(i);
+        gallery.appendChild(img);
       });
     }
 
-    function showLightbox(src) {
-      const lightbox = document.getElementById('lightbox');
-      const img = lightbox.querySelector('img');
-      img.src = src;
+    function openLightbox(index) {
+      currentIndex = index;
+      showImage();
       lightbox.style.display = 'flex';
     }
+
+    function closeLightbox() {
+      lightbox.style.display = 'none';
+      stopSlideshow();
+    }
+
+    function showImage() {
+      if (imageList.length > 0) {
+        const src = imageList[currentIndex].download_url;
+        lightboxImg.src = src;
+      }
+    }
+
+    function nextImage() {
+      currentIndex = (currentIndex + 1) % imageList.length;
+      showImage();
+    }
+
+    function prevImage() {
+      currentIndex = (currentIndex - 1 + imageList.length) % imageList.length;
+      showImage();
+    }
+
+    // Slideshow controls
+    function startSlideshow() {
+      slideshowBtn.textContent = '⏸ Pause Slideshow';
+      slideshowInterval = setInterval(nextImage, 3000);
+    }
+
+    function stopSlideshow() {
+      slideshowBtn.textContent = '▶ Play Slideshow';
+      clearInterval(slideshowInterval);
+      slideshowInterval = null;
+    }
+
+    slideshowBtn.onclick = () => {
+      if (slideshowInterval) stopSlideshow();
+      else {
+        openLightbox(0);
+        startSlideshow();
+      }
+    };
+
+    document.getElementById('nextArrow').onclick = nextImage;
+    document.getElementById('prevArrow').onclick = prevImage;
+    lightbox.onclick = e => {
+      if (e.target === lightbox) closeLightbox();
+    };
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (lightbox.style.display === 'flex') {
+        if (e.key === 'ArrowRight') nextImage();
+        else if (e.key === 'ArrowLeft') prevImage();
+        else if (e.key === 'Escape') closeLightbox();
+      }
+    });
 
     loadImages();
   </script>
