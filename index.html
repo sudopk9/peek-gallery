@@ -7,15 +7,17 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #000000;
+      background: #111; /* dark background */
       color: #eee;
       margin: 0;
       padding: 20px;
       text-align: center;
     }
+
     h1 {
       margin-bottom: 20px;
     }
+
     button {
       background: #333;
       color: white;
@@ -25,26 +27,31 @@
       cursor: pointer;
       margin-bottom: 15px;
     }
+
     button:hover {
       background: #555;
     }
+
     .gallery {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 10px;
     }
+
     .gallery img {
       width: 250px;
       height: auto;
       border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
       transition: transform 0.2s;
     }
+
     .gallery img:hover {
       transform: scale(1.03);
     }
+
     #lightbox {
       position: fixed;
       top: 0;
@@ -58,17 +65,20 @@
       z-index: 999;
       flex-direction: column;
     }
+
     #lightbox img {
       max-width: 90%;
       max-height: 80%;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px rgba(255,255,255,0.3);
       opacity: 0;
-      transition: opacity 0.5s ease; /* fade effect */
+      transition: opacity 0.5s ease; /* fade transition */
     }
+
     #lightbox img.show {
-    opacity: 1;
+      opacity: 1;
     }
+
     .nav-arrow {
       position: fixed;
       top: 50%;
@@ -79,9 +89,11 @@
       user-select: none;
       padding: 10px;
     }
+
     #prevArrow {
       left: 20px;
     }
+
     #nextArrow {
       right: 20px;
     }
@@ -102,10 +114,11 @@
     const username = 'sudopk9';
     const repo = 'peek-gallery';
     const folderPath = 'photos';
-    
+
     let currentIndex = 0;
     let imageList = [];
     let slideshowInterval = null;
+
     const gallery = document.getElementById('gallery');
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = lightbox.querySelector('img');
@@ -116,9 +129,9 @@
       const res = await fetch(url);
       const files = await res.json();
 
-
       imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
       gallery.innerHTML = '';
+
       imageList.forEach((file, i) => {
         const img = document.createElement('img');
         img.src = file.download_url;
@@ -140,17 +153,16 @@
     }
 
     function showImage() {
-       if (imageList.length > 0) {
-    // Remove current image class to trigger fade-out
-    lightboxImg.classList.remove('show');
-    
-    // Small timeout to allow opacity transition
-    setTimeout(() => {
-      lightboxImg.src = imageList[currentIndex].download_url;
-      lightboxImg.classList.add('show'); // fade-in
-    }, 50);
+      if (imageList.length > 0) {
+        // Remove class to trigger fade-out
+        lightboxImg.classList.remove('show');
+        // Small delay to allow fade-out
+        setTimeout(() => {
+          lightboxImg.src = imageList[currentIndex].download_url;
+          lightboxImg.classList.add('show'); // fade-in
+        }, 50);
+      }
     }
-   }
 
     function nextImage() {
       currentIndex = (currentIndex + 1) % imageList.length;
@@ -184,6 +196,7 @@
 
     document.getElementById('nextArrow').onclick = nextImage;
     document.getElementById('prevArrow').onclick = prevImage;
+
     lightbox.onclick = e => {
       if (e.target === lightbox) closeLightbox();
     };
