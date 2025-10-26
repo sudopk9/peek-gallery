@@ -58,24 +58,14 @@
     justify-content: center;
     align-items: center;
     z-index: 999;
-    overflow: hidden;
-    touch-action: none;
     flex-direction: column;
   }
 
-  #carousel {
-    display: flex;
-    transition: transform 0.5s ease;
-    height: 80%;
-  }
-
-  #carousel img {
-    width: 100vw;
-    height: auto;
+  #lightbox img {
+    max-width: 90%;
+    max-height: 80%;
     border-radius: 10px;
-    flex-shrink: 0;
-    transition: transform 0.3s ease;
-    touch-action: none;
+    box-shadow: 0 0 10px rgba(255,255,255,0.3);
   }
 
   .nav-arrow {
@@ -115,12 +105,11 @@
 <body>
 <h1>Peek Through My Lens</h1>
 <button id="slideshowBtn">▶ Play Slideshow</button>
-<button id="fullscreenBtn">⛶ Fullscreen</button>
 <div class="gallery" id="gallery"></div>
 
 <div id="lightbox">
   <span id="prevArrow" class="nav-arrow">&#10094;</span>
-  <div id="carousel"></div>
+  <img id="lightboxImg" src="" alt="">
   <span id="nextArrow" class="nav-arrow">&#10095;</span>
   <div id="dots"></div>
 </div>
@@ -133,23 +122,44 @@ const folderPath = 'photos';
 let currentIndex = 0;
 let imageList = [];
 let slideshowInterval = null;
-let zoomed = false;
-let pinchScale = 1;
-let startDist = 0;
-let currentX = 0, currentY = 0;
-let velocityX = 0, velocityY = 0;
-let lastTouchX = 0, lastTouchY = 0;
 
 const gallery = document.getElementById('gallery');
 const lightbox = document.getElementById('lightbox');
-const carousel = document.getElementById('carousel');
+const lightboxImg = document.getElementById('lightboxImg');
 const prevArrow = document.getElementById('prevArrow');
 const nextArrow = document.getElementById('nextArrow');
 const slideshowBtn = document.getElementById('slideshowBtn');
-const fullscreenBtn = document.getElementById('fullscreenBtn');
 const dotsContainer = document.getElementById('dots');
 
-// Lazy-loading helper
+async function loadImages() {
+  const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
+  const res = await fetch(url);
+  const files = await res.json();
+
+  imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+  gallery.innerHTML = '';
+  dotsContainer.innerHTML = '';
+
+  imageList.forEach((file, i) => {
+    // Thumbnail
+    const imgThumb = document.createElement('img');
+    imgThumb.dataset.src = file.download_url;
+    imgThumb.loading = 'lazy';
+    imgThumb.alt = file.name;
+    imgThumb.onclick = () => openLightbox(i);
+    gallery.appendChild(imgThumb);
+    lazyLoadImage(imgThumb);
+
+    // Dot
+    const dot = document.createElement('div');
+    dot.classList.add('dot');
+    dot.onclick = () => { currentIndex = i; updateLightbox(); };
+    dotsContainer.appendChild(dot);
+  });
+
+  updateLightbox();
+}
+
 function lazyLoadImage(img) {
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
@@ -162,71 +172,26 @@ function lazyLoadImage(img) {
   observer.observe(img);
 }
 
-async function loadImages() {
-  const url = `https://api.github.com/repos/${username}/${repo}/contents/${folderPath}`;
-  const res = await fetch(url);
-  const files = await res.json();
-
-  imageList = files.filter(f => f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
-  gallery.innerHTML = '';
-  carousel.innerHTML = '';
-  dotsContainer.innerHTML = '';
-
-  imageList.forEach((file, i) => {
-    // Thumbnail
-    const imgThumb = document.createElement('img');
-    imgThumb.dataset.src = file.download_url; // lazy-load
-    imgThumb.alt = file.name;
-    imgThumb.loading = 'lazy';
-    imgThumb.onclick = () => openLightbox(i);
-    gallery.appendChild(imgThumb);
-    lazyLoadImage(imgThumb);
-
-    // Carousel
-    const imgCarousel = document.createElement('img');
-    imgCarousel.dataset.src = file.download_url;
-    imgCarousel.loading = 'lazy';
-    carousel.appendChild(imgCarousel);
-    lazyLoadImage(imgCarousel);
-
-    // Dot
-    const dot = document.createElement('div');
-    dot.classList.add('dot');
-    dot.onclick = () => { currentIndex = i; resetTransform(); updateCarousel(); };
-    dotsContainer.appendChild(dot);
-  });
-
-  updateDots();
-}
-
-function updateCarousel() {
-  const offset = -currentIndex * window.innerWidth;
-  carousel.style.transition = zoomed ? 'none' : 'transform 0.5s ease';
-  carousel.style.transform = `translateX(${offset + currentX}px) translateY(${currentY}px) scale(${pinchScale})`;
-  updateDots();
-}
-
-function updateDots() {
-  const dots = dotsContainer.querySelectorAll('.dot');
-  dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
-}
-
 function openLightbox(index) {
   currentIndex = index;
-  resetTransform();
-  updateCarousel();
+  updateLightbox();
   lightbox.style.display = 'flex';
 }
 
 function closeLightbox() {
   lightbox.style.display = 'none';
   stopSlideshow();
-  if (document.fullscreenElement) document.exitFullscreen();
-  resetTransform();
 }
 
-function nextImage() { currentIndex = (currentIndex + 1) % imageList.length; resetTransform(); updateCarousel(); }
-function prevImage() { currentIndex = (currentIndex - 1 + imageList.length) % imageList.length; resetTransform(); updateCarousel(); }
+function updateLightbox() {
+  if (imageList.length > 0) {
+    lightboxImg.src = imageList[currentIndex].download_url;
+    updateDots();
+  }
+}
+
+function nextImage() { currentIndex = (currentIndex + 1) % imageList.length; updateLightbox(); }
+function prevImage() { currentIndex = (currentIndex - 1 + imageList.length) % imageList.length; updateLightbox(); }
 
 function startSlideshow() { slideshowBtn.textContent = '⏸ Pause Slideshow'; slideshowInterval = setInterval(nextImage, 3000); }
 function stopSlideshow() { slideshowBtn.textContent = '▶ Play Slideshow'; clearInterval(slideshowInterval); slideshowInterval = null; }
@@ -234,11 +199,6 @@ function stopSlideshow() { slideshowBtn.textContent = '▶ Play Slideshow'; clea
 slideshowBtn.onclick = () => { if (slideshowInterval) stopSlideshow(); else { openLightbox(currentIndex); startSlideshow(); } };
 nextArrow.onclick = nextImage;
 prevArrow.onclick = prevImage;
-
-fullscreenBtn.onclick = () => {
-  if (!document.fullscreenElement) lightbox.requestFullscreen?.();
-  else document.exitFullscreen?.();
-};
 
 lightbox.onclick = e => { if (e.target === lightbox) closeLightbox(); };
 document.addEventListener('keydown', e => {
@@ -249,108 +209,9 @@ document.addEventListener('keydown', e => {
   }
 });
 
-window.addEventListener('resize', updateCarousel);
-
-// Touch + pinch + pan + inertia
-let lastTime = 0;
-let touchStartX = 0, touchStartY = 0;
-let isDragging = false;
-
-carousel.addEventListener('touchstart', e => {
-  if (e.touches.length === 1 && !zoomed) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    lastTouchX = touchStartX;
-    lastTouchY = touchStartY;
-    isDragging = true;
-    velocityX = 0; velocityY = 0;
-    if (slideshowInterval) stopSlideshow();
-  } else if (e.touches.length === 2) {
-    startDist = getDistance(e.touches[0], e.touches[1]);
-  }
-});
-
-carousel.addEventListener('touchmove', e => {
-  if (e.touches.length === 1 && isDragging && !zoomed) {
-    const moveX = e.touches[0].clientX - touchStartX;
-    carousel.style.transition = 'none';
-    carousel.style.transform = `translateX(${-currentIndex*window.innerWidth + moveX}px) translateY(0) scale(${pinchScale})`;
-    const now = Date.now();
-    const dt = now - lastTime;
-    if (dt > 0) {
-      velocityX = e.touches[0].clientX - lastTouchX;
-      velocityY = e.touches[0].clientY - lastTouchY;
-      lastTouchX = e.touches[0].clientX;
-      lastTouchY = e.touches[0].clientY;
-      lastTime = now;
-    }
-  } else if (e.touches.length === 2) {
-    const newDist = getDistance(e.touches[0], e.touches[1]);
-    pinchScale = Math.max(1, Math.min(4, pinchScale * (newDist/startDist)));
-    startDist = newDist;
-    updateCarousel();
-  } else if (zoomed && e.touches.length === 1) {
-    const deltaX = e.touches[0].clientX - lastTouchX;
-    const deltaY = e.touches[0].clientY - lastTouchY;
-    currentX += deltaX;
-    currentY += deltaY;
-    lastTouchX = e.touches[0].clientX;
-    lastTouchY = e.touches[0].clientY;
-    updateCarousel();
-  }
-});
-
-carousel.addEventListener('touchend', e => {
-  if (isDragging && e.touches.length === 0 && !zoomed) {
-    const diffX = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(diffX) > 50) { if (diffX < 0) nextImage(); else prevImage(); } 
-    else updateCarousel();
-  }
-  if (zoomed && (Math.abs(velocityX) > 0 || Math.abs(velocityY) > 0)) {
-    inertiaPan();
-  }
-  isDragging = false;
-});
-
-// Double-tap / double-click zoom
-let lastTap = 0;
-carousel.addEventListener('dblclick', toggleZoom);
-carousel.addEventListener('touchend', e => {
-  const currentTime = new Date().getTime();
-  const tapLength = currentTime - lastTap;
-  if (tapLength < 300 && tapLength > 0) toggleZoom();
-  lastTap = currentTime;
-});
-
-function toggleZoom() {
-  zoomed = !zoomed;
-  pinchScale = zoomed ? 2 : 1;
-  currentX = 0; currentY = 0; velocityX=0; velocityY=0;
-  updateCarousel();
-}
-
-function resetTransform() {
-  zoomed = false;
-  pinchScale = 1;
-  currentX = 0; currentY = 0;
-  velocityX = 0; velocityY = 0;
-  const img = carousel.children[currentIndex];
-  if (img) img.style.transform = 'translateX(0) translateY(0) scale(1)';
-}
-
-function getDistance(p1, p2) { return Math.hypot(p2.clientX - p1.clientX, p2.clientY - p1.clientY); }
-
-function inertiaPan() {
-  const friction = 0.95;
-  function step() {
-    currentX += velocityX;
-    currentY += velocityY;
-    velocityX *= friction;
-    velocityY *= friction;
-    updateCarousel();
-    if (Math.abs(velocityX) > 0.5 || Math.abs(velocityY) > 0.5) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+function updateDots() {
+  const dots = dotsContainer.querySelectorAll('.dot');
+  dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
 }
 
 loadImages();
